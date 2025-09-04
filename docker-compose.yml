@@ -1,0 +1,47 @@
+# Modern Docker Compose sürümleri için 'version' etiketi artık gerekli değildir.
+services:
+  # MySQL Veritabanı Servisi
+  db:
+    image: mysql:8.0
+    container_name: hizmetypinari_mysql_db
+    restart: unless-stopped
+    environment:
+      # DİKKAT: Bu parolaları daha güvenli bir şeylerle değiştirin!
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: hizmetypinari_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql # MySQL verilerinin kalıcı olması için
+    networks:
+      - net1
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # phpMyAdmin Yönetim Arayüzü
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: hizmetypinari_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8080:80" # Bilgisayarınızın 8080 portunu, konteynerin 80 portuna bağlıyoruz
+    environment:
+      PMA_HOST: db # Bağlanacağı sunucunun servis adını yazıyoruz: 'db'
+      MYSQL_ROOT_PASSWORD: rootpassword # Yönetimsel işlemler için root parolasını da veriyoruz
+    networks:
+      - net1
+    depends_on:
+      db:
+        condition: service_healthy # db servisi "healthy" durumuna geçmeden bu servis başlamaz
+
+# Network (Ağ) tanımlaması
+networks:
+  net1:
+    driver: bridge
+
+# Volume (Kalıcı Veri Alanı) tanımlaması
+volumes:
+  mysql_data:
